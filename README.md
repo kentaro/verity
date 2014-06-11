@@ -26,7 +26,7 @@ This repository provides Linux development environment with Vagrant.
 ```
 $ vagrant up
 $ vagrant ssh
-[vagrant $] cd home/vagrant/go/src/github.com/kentaro/verity
+[vagrant $] cd /home/vagrant/src/github.com/kentaro/verity
 ```
 
 To build `verity` command:

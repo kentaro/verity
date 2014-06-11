@@ -9,13 +9,13 @@ end
 file "/etc/profile.d/go.sh" do
   mode 0755
   content <<'EOS'
-export PATH=/usr/local/go/bin:/home/vagrant/go/bin:$PATH
-export GOPATH=/home/vagrant/go
+export PATH=/usr/local/go/bin:/home/vagrant/bin:$PATH
+export GOPATH=/home/vagrant
 EOS
   action :create
 end
 
-directory "/home/vagrant/go/src/github.com/kentaro" do
+directory "/home/vagrant/src/github.com/kentaro" do
   owner "vagrant"
   group "vagrant"
   action :create
@@ -30,9 +30,8 @@ end
 execute "install golang" do
   cwd "/usr/local/src"
   command <<EOS
-wget https://go.googlecode.com/files/go1.1.2.linux-amd64.tar.gz &&
-tar zxvf go1.1.2.linux-amd64.tar.gz                             &&
+wget https://storage.googleapis.com/golang/go1.2.2.linux-amd64.tar.gz &&
+tar zxvf go1.2.2.linux-amd64.tar.gz                                   &&
 mv go /usr/local/go
 EOS
 end
-
