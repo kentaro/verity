@@ -22,7 +22,7 @@ func (self *Packages) Collect() (result interface{}, err error) {
 }
 
 func getInstalledPackages() (packages []string, err error) {
-	distro, err := util.Distro()
+	format, err := util.PackageFormat()
 
 	if err != nil {
 		return
@@ -31,9 +31,9 @@ func getInstalledPackages() (packages []string, err error) {
 	var command string
 	var args []string
 
-	switch distro {
-	case "rhel":
-		command = "rpm"
+	switch format {
+	case "rpm":
+		command = format
 		args = []string{"-qa"}
 	default:
 		err = errors.New(fmt.Sprintf("unsupported distribution: %s", distro))
