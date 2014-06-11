@@ -10,6 +10,7 @@ import (
 	"github.com/kentaro/verity/memory"
 	"github.com/kentaro/verity/network"
 	"github.com/kentaro/verity/packages"
+	"github.com/kentaro/verity/system"
 	"log"
 )
 
@@ -28,6 +29,7 @@ var collectors = []Collector{
 	&memory.Memory{},
 	&network.Network{},
 	&packages.Packages{},
+	&system.System{},
 }
 
 func Collect() (result map[string]interface{}, err error) {

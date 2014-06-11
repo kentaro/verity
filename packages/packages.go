@@ -36,7 +36,7 @@ func getInstalledPackages() (packages []string, err error) {
 		command = format
 		args = []string{"-qa"}
 	default:
-		err = errors.New(fmt.Sprintf("unsupported distribution: %s", distro))
+		err = errors.New(fmt.Sprintf("unsupported package format: %s", format))
 		return
 	}
 
