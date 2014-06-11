@@ -11,3 +11,4 @@ test:
 	cd macaddress  && go test
 	cd memory      && go test
 	cd network     && go test
+	cd packages    && go test

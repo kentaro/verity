@@ -9,6 +9,7 @@ import (
 	"github.com/kentaro/verity/macaddress"
 	"github.com/kentaro/verity/memory"
 	"github.com/kentaro/verity/network"
+	"github.com/kentaro/verity/packages"
 	"log"
 )
 
@@ -26,6 +27,7 @@ var collectors = []Collector{
 	&macaddress.MacAddress{},
 	&memory.Memory{},
 	&network.Network{},
+	&packages.Packages{},
 }
 
 func Collect() (result map[string]interface{}, err error) {
