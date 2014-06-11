@@ -1,5 +1,5 @@
 all:
-	go build -o build/verity bin/verity.go
+	go build -o build/verity cmd/verity/verity.go
 
 test:
 	go test
