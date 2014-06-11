@@ -1,31 +1,32 @@
 package verity
 
 import (
-	. "github.com/r7kamura/gospel"
 	"os"
 	"testing"
 )
 
 func TestCollector(t *testing.T) {
-	Describe(t, "Collect", func() {
-		os.Setenv("VERITY_TEST", "1")
+	os.Setenv("VERITY_TEST", "1")
 
-		result, _ := Collect()
+	result, err := Collect()
 
-		It("should be able to collect CPU info", func() {
-			Expect(result["cpu"]).To(Exist)
-		})
+	if err != nil {
+		t.Errorf("got an error: %v\n", err)
+	}
 
-		It("should be able to collect env info", func() {
-			Expect(result["test"]).To(Equal, "1")
-		})
+	if result["cpu"] == "foo" {
+		t.Error("it should be able to collect CPU info\n")
+	}
 
-		It("should be able to collect hostname info", func() {
-			Expect(result["hostname"]).To(Exist)
-		})
+	if result["test"] == nil {
+		t.Error("it should be able to collect environment variables\n")
+	}
 
-		It("should be able to collect memory info", func() {
-			Expect(result["memory"]).To(Exist)
-		})
-	})
+	if result["hostname"] == nil {
+		t.Error("it should be able to collect hostname info\n")
+	}
+
+	if result["memory"] == nil {
+		t.Error("it should be able to collect memory info\n")
+	}
 }

@@ -4,13 +4,11 @@ Verity is a tool/library to build an inventory of system information. It aims to
 
 ## Usage
 
-Do `go get` from this repository:
+Do `go get` against this repository:
 
 ```
-$ go get github.com/kentaro/verity/bin
+$ go get github.com/kentaro/verity/cmd/verity
 ```
-
-Notice that you have to add `bin` directory to install `verity` command.
 
 Then execute the command:
 
@@ -21,24 +19,24 @@ $ verity
 
 ## How to Hack
 
-This repository provides Linux development environment with Vagrant.
+This repository provides Linux development environment using Vagrant.
 
 ```
 $ vagrant up
 $ vagrant ssh
-[vagrant $] cd home/vagrant/go/src/github.com/kentaro/verity
+[vagrant@localhost ~]$ cd /home/vagrant/src/github.com/kentaro/verity
 ```
 
 To build `verity` command:
 
 ```
-[vagrant $] make
+[vagrant@localhost verity]$ make
 ```
 
 To test whole the project:
 
 ```
-[vagrant $] make test
+[vagrant@localhost verity]$ make test
 ```
 
 ## See Also

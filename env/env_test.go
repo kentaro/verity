@@ -1,30 +1,45 @@
 package env
 
 import (
-	. "github.com/r7kamura/gospel"
 	"os"
 	"testing"
 )
 
 func TestHostname(t *testing.T) {
-	Describe(t, "env.Name()", func() {
-		collector := &Env{}
+	os.Setenv("VERITY_TEST1", "1")
+	os.Setenv("VERITY_TEST2", "2")
 
-		It("should have its own name", func() {
-			Expect(collector.Name()).To(Equal, "env")
-		})
-	})
+	collector := &Env{}
+	result, err := collector.Collect()
 
-	Describe(t, "env.Collect()", func() {
-		os.Setenv("VERITY_TEST1", "1")
-		os.Setenv("VERITY_TEST2", "2")
+	if err != nil {
+		t.Error("it should be able to collect environment variables\n")
+	}
 
-		collector := &Env{}
-		result, _ := collector.Collect()
+	{
+		actual := collector.Name()
+		expected := "env"
 
-		It("should be able to collect hostname", func() {
-			Expect(result.(map[string]string)["test1"]).To(Equal, "1")
-			Expect(result.(map[string]string)["test2"]).To(Equal, "2")
-		})
-	})
+		if actual != expected {
+			t.Errorf("got %v\nexpected %v\n", actual, expected)
+		}
+	}
+
+	{
+		actual := result.(map[string]string)["test1"]
+		expected := "1"
+
+		if actual != expected {
+			t.Errorf("got %v\nexpected %v\n", actual, expected)
+		}
+	}
+
+	{
+		actual := result.(map[string]string)["test2"]
+		expected := "2"
+
+		if actual != expected {
+			t.Errorf("got %v\nexpected %v\n", actual, expected)
+		}
+	}
 }
