@@ -16,8 +16,8 @@ func (self *Packages) Name() string {
 	return name
 }
 
-func (self *Packages) Collect() (packages []string, err error) {
-	packages, err = getInstalledPackages()
+func (self *Packages) Collect() (result interface{}, err error) {
+	result, err = getInstalledPackages()
 	return
 }
 
@@ -46,6 +46,6 @@ func getInstalledPackages() (packages []string, err error) {
 		return
 	}
 
-	packages = strings.Split(string(output), "\n")
+	packages = strings.Split(strings.TrimRight(string(output), "\n"), "\n")
 	return
 }
