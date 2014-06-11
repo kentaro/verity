@@ -1,29 +1,31 @@
 package cpu
 
 import (
-	. "github.com/r7kamura/gospel"
 	"testing"
 )
 
 func TestCpu(t *testing.T) {
-	Describe(t, "cpu.Name()", func() {
-		collector := &Cpu{}
+	collector := &Cpu{}
+	result, err := collector.Collect()
 
-		It("should have its name", func() {
-			Expect(collector.Name()).To(Equal, "cpu")
-		})
-	})
+	if err != nil {
+		t.Error("it should be able to collect CPU info\n")
+	}
 
-	Describe(t, "cpu.Collect()", func() {
-		collector := &Cpu{}
-		result, _ := collector.Collect()
+	{
+		actual := collector.Name()
+		expected := "cpu"
 
-		It("should be able to collect CPU model name", func() {
-			Expect(result.(map[string]string)["model_name"]).To(NotEqual, "")
-		})
+		if actual != expected {
+			t.Errorf("got %v\nexpected %v\n", actual, expected)
+		}
+	}
 
-		It("should be able to collect the number of CPU(s)", func() {
-			Expect(result.(map[string]string)["total"]).To(NotEqual, "0")
-		})
-	})
+	if result.(map[string]string)["model_name"] == "" {
+		t.Error("it should be able to collect CPU model name\n")
+	}
+
+	if result.(map[string]string)["total"] == "0" {
+		t.Error("it should be able to collect the number of CPU(s)\n")
+	}
 }
