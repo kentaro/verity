@@ -6,7 +6,7 @@ import (
 
 func TestPackages(t *testing.T) {
 	collector := &Packages{}
-	result, err := collector.Collect()
+	_, err := collector.Collect()
 
 	if err != nil {
 		t.Error("it should be able to collect installed packages\n")
