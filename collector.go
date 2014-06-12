@@ -12,6 +12,7 @@ import (
 	"github.com/kentaro/verity/packages"
 	"github.com/kentaro/verity/system"
 	"log"
+	"sync"
 )
 
 type Collector interface {
@@ -34,24 +35,31 @@ var collectors = []Collector{
 
 func Collect() (result map[string]interface{}, err error) {
 	result = make(map[string]interface{})
+	workers := &sync.WaitGroup{}
 
 	for _, collector := range collectors {
-		verity, err := collector.Collect()
+		workers.Add(1)
+		go func(collector Collector) {
+			defer workers.Done()
 
-		if err != nil {
-			log.Printf("[%s] %s", collector.Name(), err)
-			continue
-		}
+			verity, err := collector.Collect()
 
-		// We put the values from environment variables on to the top level of the result.
-		if collector.Name() == "env" {
-			for key, value := range verity.(map[string]string) {
-				result[key] = value
+			if err != nil {
+				log.Printf("[%s] %s", collector.Name(), err)
+				return
 			}
-		} else {
-			result[collector.Name()] = verity
-		}
+
+			// We put the values from environment variables on to the top level of the result.
+			if collector.Name() == "env" {
+				for key, value := range verity.(map[string]string) {
+					result[key] = value
+				}
+			} else {
+				result[collector.Name()] = verity
+			}
+		}(collector)
 	}
 
+	workers.Wait()
 	return
 }
