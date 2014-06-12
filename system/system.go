@@ -2,6 +2,7 @@ package system
 
 import (
 	"github.com/kentaro/verity/util"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -21,17 +22,20 @@ func (self *System) Collect() (result interface{}, err error) {
 
 func getSystemInfo() (info map[string]string, err error) {
 	info = make(map[string]string)
-	commands := map[string][]string{
-		"name":    []string{"uname", "-s"},
-		"release": []string{"uname", "-r"},
-		"version": []string{"uname", "-v"},
-		"machine": []string{"uname", "-m"},
-		"os":      []string{"uname", "-o"},
+	commands := map[string]string{
+		"name":    "-s",
+		"release": "-r",
+		"version": "-v",
+		"machine": "-m",
 	}
 
-	for key, command := range commands {
+	for key, arg := range commands {
 		var out []byte
-		out, err = exec.Command(command[0], command[1]).Output()
+
+		cmd := exec.Command("uname", arg)
+		cmd.Stderr = os.Stderr
+
+		out, err = cmd.Output()
 		if err != nil {
 			return
 		}

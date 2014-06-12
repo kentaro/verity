@@ -35,9 +35,11 @@ func getInstalledPackages() (packages []string, err error) {
 	case "rpm":
 		command = format
 		args = []string{"-qa"}
+	case "brew":
+		command = format
+		args = []string{"list"}
 	default:
 		err = errors.New(fmt.Sprintf("unsupported package format: %s", format))
-		return
 	}
 
 	output, err := exec.Command(command, args...).Output()
