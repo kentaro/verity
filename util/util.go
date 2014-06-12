@@ -24,6 +24,8 @@ func PackageFormat() (result string, err error) {
 		} else {
 			err = errors.New("unsupported distribution")
 		}
+	case "darwin":
+		result = "brew"
 	default:
 		err = errors.New(fmt.Sprint("unsupported platform: %s", platform))
 	}
@@ -48,6 +50,8 @@ func Distro() (result string, err error) {
 		}
 
 		result = strings.TrimRight(string(data), "\n")
+	case "brew":
+		result = "osx"
 	default:
 		err = errors.New(fmt.Sprint("unsupported package format: %s", format))
 	}

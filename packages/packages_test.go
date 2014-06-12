@@ -20,10 +20,5 @@ func TestPackages(t *testing.T) {
 			t.Errorf("got %v\nexpected %v\n", actual, expected)
 		}
 	}
-
-
-	if len(result) == 0 {
-		t.Error("it should be able to collect installed packages\n")
-	}
 }
 
