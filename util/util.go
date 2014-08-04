@@ -27,7 +27,7 @@ func PackageFormat() (result string, err error) {
 	case "darwin":
 		result = "brew"
 	default:
-		err = errors.New(fmt.Sprint("unsupported platform: %s", platform))
+		err = errors.New(fmt.Sprintf("unsupported platform: %s", platform))
 	}
 
 	return
