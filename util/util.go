@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,12 +21,12 @@ func PackageFormat() (result string, err error) {
 		if _, err := os.Stat("/etc/redhat-release"); err == nil {
 			result = "rpm"
 		} else {
-			err = errors.New("unsupported distribution")
+			err = fmt.Errorf("unsupported distribution")
 		}
 	case "darwin":
 		result = "brew"
 	default:
-		err = errors.New(fmt.Sprint("unsupported platform: %s", platform))
+		err = fmt.Errorf("unsupported platform: %s", platform)
 	}
 
 	return
@@ -53,7 +52,7 @@ func Distro() (result string, err error) {
 	case "brew":
 		result = "osx"
 	default:
-		err = errors.New(fmt.Sprint("unsupported package format: %s", format))
+		err = fmt.Errorf("unsupported package format: %s", format)
 	}
 
 	return
