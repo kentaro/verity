@@ -1,25 +1,35 @@
 package platform
 
 import (
-	utils "github.com/DataDog/gohai/windowsutils"
+	"os"
+	"fmt"
+	"golang.org/x/sys/windows/registry"
 )
+
+const registryHive = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
+const productNameKey = "ProductName"
+const buildNumberKey = "CurrentBuildNumber"
+const majorKey = "CurrentMajorVersionNumber"
+const minorKey = "CurrentMinorVersionNumber"
 
 func getArchInfo() (systemInfo map[string]interface{}, err error) {
 	systemInfo = make(map[string]interface{})
 
-	computerSystem, err := utils.WindowsWMICommand("COMPUTERSYSTEM", "Name", "SystemType")
-	if err != nil {
-		return
-	}
-	systemInfo["hostname"] = computerSystem["Name"]
-	systemInfo["machine"] = computerSystem["SystemType"]
+	systemInfo["hostname"], _ = os.Hostname()
+	systemInfo["machine"] = "x86_64"
+	
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE,
+								registryHive,
+								registry.QUERY_VALUE)
+	defer k.Close()
 
-	os, err := utils.WindowsWMICommand("OS", "Version", "Caption")
-	if err != nil {
-		return
-	}
-	systemInfo["kernel_release"] = os["Version"]
-	systemInfo["os"] = os["Caption"]
+	systemInfo["os"], _, _= k.GetStringValue(productNameKey)
+
+	var maj, _, _ = k.GetIntegerValue(majorKey)
+	var min, _, _ = k.GetIntegerValue(minorKey)
+	var bld, _, _ = k.GetStringValue(buildNumberKey)
+	verstring := fmt.Sprintf("%d.%d.%s", maj, min, bld)
+	systemInfo["kernel_release"] = verstring
 
 	systemInfo["kernel_name"] = "Windows"
 

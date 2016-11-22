@@ -2,10 +2,13 @@ package cpu
 
 import (
 	"fmt"
-	utils "github.com/DataDog/gohai/windowsutils"
 	"regexp"
 	"strconv"
 	"strings"
+	"unsafe"
+	"syscall"
+	"golang.org/x/sys/windows/registry"
+	"encoding/binary"
 )
 
 // Values that need to be multiplied by the number of physical processors
@@ -13,43 +16,146 @@ var perPhysicalProcValues = []string{
 	"cpu_cores",
 	"cpu_logical_processors",
 }
+const ERROR_INSUFFICIENT_BUFFER syscall.Errno = 122
+const registryHive = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0"
+
+type CACHE_DESCRIPTOR struct {
+	Level			uint8
+	Associativity 	uint8
+	LineSize 		uint16
+	Size			uint32
+	cacheType		uint32
+}
+type SYSTEM_LOGICAL_PROCESSOR_INFORMATION struct {
+	ProcessorMask  	uint64
+	Relationship	uint64
+	// in the Windows header, this is a union of a byte, a DWORD,
+	// and a CACHE_DESCRIPTOR structure
+	dataunion		[16]byte
+}
+const SYSTEM_LOGICAL_PROCESSOR_INFORMATION_SIZE = 32
+
+const RelationProcessorCore = 0
+const RelationNumaNode = 1
+const RelationCache = 2
+const RelationProcessorPackage = 3
+const RelationGroup = 4
+
+type SYSTEM_INFO struct {
+	wProcessorArchitecture		uint16
+	wReserved					uint16
+	dwPageSize					uint32
+	lpMinApplicationAddress		*uint32
+	lpMaxApplicationAddress     *uint32
+	dwActiveProcessorMask		uint64
+	dwNumberOfProcessors		uint32
+	dwProcessorType				uint32
+	dwAllocationGranularity		uint32
+	wProcessorLevel				uint16
+	wProcessorRevision			uint16
+}
+
+func byteArrayToProcessorStruct(data []byte)(info SYSTEM_LOGICAL_PROCESSOR_INFORMATION ) {
+	info.ProcessorMask = binary.LittleEndian.Uint64(data)
+	info.Relationship  = binary.LittleEndian.Uint64(data[8:])
+	copy(info.dataunion[0:16], data[16:32])
+	return
+}
+func countBits(num uint64) (count int) {
+    count = 0
+    for  num > 0 {
+        if (num & 0x1) == 1 {
+            count++
+        }
+        num >>= 1
+    }
+    return
+}
+
+func getSystemInfo() (si SYSTEM_INFO){
+	var mod = syscall.NewLazyDLL("kernel32.dll")
+	var gsi = mod.NewProc("GetSystemInfo")
+
+	gsi.Call(uintptr(unsafe.Pointer(&si)))
+	return
+}
+
+func computeCoresAndProcessors() (phys int, cores int, processors int, err error) {
+	var mod = syscall.NewLazyDLL("kernel32.dll")
+	var getProcInfo = mod.NewProc("GetLogicalProcessorInformation")
+	var len uint32 = 0
+	err = syscall.Errno(0)
+	// first, figure out how much we need
+	status, _, err := getProcInfo.Call(uintptr(0),
+									uintptr(unsafe.Pointer(&len)))
+	if status == 0 {
+		if err != ERROR_INSUFFICIENT_BUFFER {
+			// only error we're expecing here is insufficient buffer
+			// anything else is a failure
+			return 
+		}
+	} else {
+		// this shouldn't happen. Errno won't be set (because the fuction)
+		// succeeded.  So just return something to indicate we've failed
+		return 0, 0, 0, syscall.Errno(1)
+	}
+	buf := make([]byte, len)
+	status, _, err = getProcInfo.Call(uintptr(unsafe.Pointer(&buf[0])),
+									    uintptr(unsafe.Pointer(&len)))
+	if status == 0 {
+		return
+	}
+	// walk through each of the buffers
+	var numaNodeCount int32
+	
+	for i  := 0 ; uint32(i) < len; i+= SYSTEM_LOGICAL_PROCESSOR_INFORMATION_SIZE {
+		info := byteArrayToProcessorStruct(buf[i:i+SYSTEM_LOGICAL_PROCESSOR_INFORMATION_SIZE])
+
+		switch info.Relationship {
+			case RelationNumaNode:
+				numaNodeCount++
+
+			case RelationProcessorCore:
+				cores++
+				processors += countBits(info.ProcessorMask)
+
+			case RelationProcessorPackage:
+				phys++
+		}
+	}
+	return
+}
 
 func getCpuInfo() (cpuInfo map[string]string, err error) {
 
 	cpuInfo = make(map[string]string)
 
-	cpus, err := utils.WindowsWMIMultilineCommand("CPU",
-		"CurrentClockSpeed", "Name", "NumberOfCores",
-		"NumberOfLogicalProcessors", "Caption", "Manufacturer")
-	if err != nil {
-		return
-	}
 	// each line represents a different CPUx
-	numberOfPhysicalCpus := len(cpus)
-	cpu := cpus[0]
+	_, cores, lprocs, _ := computeCoresAndProcessors()
+	si := getSystemInfo()
 
-	cpuInfo["mhz"] = cpu["CurrentClockSpeed"]
-	cpuInfo["model_name"] = cpu["Name"]
-	cpuInfo["cpu_cores"] = cpu["NumberOfCores"]
-	cpuInfo["cpu_logical_processors"] = cpu["NumberOfLogicalProcessors"]
-	cpuInfo["vendor_id"] = cpu["Manufacturer"]
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, 
+								registryHive,
+								registry.QUERY_VALUE)
+	defer k.Close()
+	dw, _, err := k.GetIntegerValue("~MHz")								
+	cpuInfo["mhz"] = strconv.Itoa(int(dw))
 
-	caption := fmt.Sprintf(" %s ", cpu["Caption"])
-	cpuInfo["family"] = extract(caption, "Family")
-	cpuInfo["model"] = extract(caption, "Model")
-	cpuInfo["stepping"] = extract(caption, "Stepping")
+	s, _, err := k.GetStringValue("ProcessorNameString")
+	cpuInfo["model_name"] = s
 
-	// Multiply the values that are "per physical processor" by the number of physical procs
-	for _, field := range perPhysicalProcValues {
-		if value, ok := cpuInfo[field]; ok {
-			intValue, err := strconv.Atoi(value)
-			if err != nil {
-				continue
-			}
+	cpuInfo["cpu_cores"] = strconv.Itoa(cores)
+	cpuInfo["cpu_logical_processors"] = strconv.Itoa(lprocs)
+	
+	s, _, err = k.GetStringValue("VendorIdentifier")
+	cpuInfo["vendor_id"] = s
+	
+	s, _, err = k.GetStringValue("Identifier")
+	cpuInfo["family"] = extract(s, "Family")
+	
+	cpuInfo["model"] = strconv.Itoa(int((si.wProcessorRevision >> 8) & 0xFF))
+	cpuInfo["stepping"] = strconv.Itoa(int(si.wProcessorRevision & 0xFF))
 
-			cpuInfo[field] = strconv.Itoa(intValue * numberOfPhysicalCpus)
-		}
-	}
 
 	return
 }
